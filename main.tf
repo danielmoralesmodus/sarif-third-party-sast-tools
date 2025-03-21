@@ -25,4 +25,8 @@ resource "azurerm_managed_disk" "source" {
     encryption_settings {
         enabled = var.enableEncryption
     }
+resource "azurerm_managed_disk2" "source" {
+    encryption_settings {
+        enabled = var.enableEncryption
+    }
 }
