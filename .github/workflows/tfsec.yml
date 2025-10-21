@@ -39,25 +39,23 @@ jobs:
           # Path to SARIF file relative to the root of the repository
           sarif_file: tfsec.sarif
 
-      - name: Fail build if issues found
-        id: check_results # Add an ID to this step
+      - name: Check for issues and print summary
+        id: tfsec_results
         run: |
           RESULT_COUNT=$(jq '.runs[0].results | length' tfsec.sarif)
           
           if [ "$RESULT_COUNT" -gt 0 ]; then
-            echo "::error::Found $RESULT_COUNT vulnerabilities in tfsec.sarif. Failing the build."
-            # Set an output for the next step to check
-            echo "results_found=true" >> $GITHUB_OUTPUT
+            echo "::error::Found $RESULT_COUNT vulnerabilities. See summary below or in the 'Security' tab."
+            
+            # This 'jq' command creates a custom, easy-to-read report in the log
+            echo "-----------------------------------------------------"
+            echo "             VULNERABILITY SUMMARY"
+            echo "-----------------------------------------------------"
+            jq -r '.runs[0].results[] | 
+              "\(.level | ascii_upcase): \(.ruleId)\n  Message: \(.message.text)\n  File: \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)\n-----------------------------------------------------"' \
+              tfsec.sarif
+
             exit 1
           else
             echo "No vulnerabilities found."
-            echo "results_found=false" >> $GITHUB_OUTPUT
           fi
-      
-      # --- NEW STEP TO PRINT RESULTS ---
-      # This step will only run if the previous step failed (i.e., results were found)
-      - name: Print SARIF results
-        if: failure() && steps.check_results.outputs.results_found == 'true'
-        run: |
-          echo "::warning::Dumping SARIF results to console:"
-          jq '.runs[0].results' tfsec.sarif
