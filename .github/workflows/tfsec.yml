@@ -40,14 +40,24 @@ jobs:
           sarif_file: tfsec.sarif
 
       - name: Fail build if issues found
+        id: check_results # Add an ID to this step
         run: |
-          # 'jq' is pre-installed on GitHub runners
-          # This command counts the number of 'results' in the SARIF file
           RESULT_COUNT=$(jq '.runs[0].results | length' tfsec.sarif)
           
           if [ "$RESULT_COUNT" -gt 0 ]; then
             echo "::error::Found $RESULT_COUNT vulnerabilities in tfsec.sarif. Failing the build."
+            # Set an output for the next step to check
+            echo "results_found=true" >> $GITHUB_OUTPUT
             exit 1
           else
             echo "No vulnerabilities found."
+            echo "results_found=false" >> $GITHUB_OUTPUT
           fi
+      
+      # --- NEW STEP TO PRINT RESULTS ---
+      # This step will only run if the previous step failed (i.e., results were found)
+      - name: Print SARIF results
+        if: failure() && steps.check_results.outputs.results_found == 'true'
+        run: |
+          echo "::warning::Dumping SARIF results to console:"
+          jq '.runs[0].results' tfsec.sarif
