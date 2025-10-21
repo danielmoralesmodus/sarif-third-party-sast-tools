@@ -26,3 +26,4 @@ resource "azurerm_managed_disk" "source" {
         enabled = var.enableEncryption
     }
 }
+
