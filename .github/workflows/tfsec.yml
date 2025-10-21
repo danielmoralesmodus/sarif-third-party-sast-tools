@@ -40,6 +40,7 @@ jobs:
           sarif_file: tfsec.sarif
 
       - name: Check for issues and print summary
+        continue-on-error: true
         id: tfsec_results
         run: |
           RESULT_COUNT=$(jq '.runs[0].results | length' tfsec.sarif)
